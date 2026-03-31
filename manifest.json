@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "FFlato",
+  "version": "1.0.0",
+  "description": "PLATO 어디서든 확장 프로그램 아이콘을 눌러 바로 출결할 수 있는 확장 프로그램",
+  "permissions": [],
+  "host_permissions": [
+    "https://plato.pusan.ac.kr/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

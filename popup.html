@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      color: #333;
+    }
+    .header {
+      background: #1a3a5c;
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header-title { font-weight: 600; font-size: 14px; }
+    .header-link {
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      font-size: 11px;
+    }
+    .header-link:hover { color: #fff; }
+    .body { padding: 12px; }
+
+    .status {
+      text-align: center;
+      color: #888;
+      padding: 16px 0;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid #ddd;
+      border-top-color: #1a3a5c;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .course-item {
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: #fafafa;
+    }
+    .course-name {
+      font-weight: 600;
+      font-size: 12px;
+      color: #333;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .course-time {
+      font-size: 11px;
+      color: #e74c3c;
+      margin-bottom: 6px;
+    }
+    .input-row { display: flex; gap: 6px; }
+    .auth-input {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 15px;
+      font-family: monospace;
+      letter-spacing: 3px;
+      text-align: center;
+      outline: none;
+    }
+    .auth-input:focus {
+      border-color: #1a3a5c;
+      box-shadow: 0 0 0 2px rgba(26,58,92,0.12);
+    }
+    .submit-btn {
+      padding: 6px 14px;
+      background: #1a3a5c;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .submit-btn:hover { background: #244d75; }
+    .submit-btn:disabled { background: #999; cursor: not-allowed; }
+
+    .result {
+      margin-top: 6px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      text-align: center;
+    }
+    .result.success { background: #d4edda; color: #155724; }
+    .result.error { background: #f8d7da; color: #721c24; }
+
+    .no-sessions {
+      text-align: center;
+      color: #aaa;
+      padding: 12px 0;
+      font-size: 12px;
+    }
+
+    .refresh-btn {
+      display: block;
+      margin: 8px auto 0;
+      padding: 5px 14px;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 11px;
+      color: #555;
+    }
+    .refresh-btn:hover { background: #e0e0e0; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="header-title">PLATO 빠른 출결</span>
+    <a href="debug.html" target="_blank" class="header-link">Debug</a>
+  </div>
+  <div class="body" id="app">
+    <div class="status"><span class="spinner"></span> 출결 세션 검색 중...</div>
+  </div>
+  <script src="plato-api.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
