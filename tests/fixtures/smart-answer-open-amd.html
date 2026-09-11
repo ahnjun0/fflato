@@ -1,0 +1,46 @@
+<!--
+  자동출결이 열려 있는 상태 — 2026-09-07 형태.
+
+  마크업은 그대로인데 제출 정보가 인라인 $.post 에서 AMD 모듈 설정으로 옮겨졌다.
+  모듈이 보내는 내용은 이전과 동일하다:
+    $.post(cfg.actionurl, { id, action:'smartanswer', sesskey, smartid, authkey })
+
+  값은 전부 지어낸 것이다. 실제 서버 응답은 저장소에 넣지 않는다
+  (MOODLE_WSTOKEN, sesskey, 이메일이 들어 있다).
+-->
+<div role="main">
+  <h2>내 출석현황</h2>
+
+  <div class="alert alert-info">
+    <h5>자동출결 인증번호 입력</h5>
+    <p>교수자가 안내한 인증번호를 입력하면 출석 처리됩니다.
+       (남은시간: <b id="sb-smart-answer-timer">4:13</b>)</p>
+    <form id="sb-smart-answer-form" class="d-flex" style="gap:8px;max-width:360px">
+      <input type="text" id="sb-smart-answer-key" class="form-control"
+             inputmode="numeric" placeholder="인증번호를 입력하세요" required="">
+      <button type="submit" class="btn btn-primary">저장</button>
+    </form>
+  </div>
+
+  <div class="csms-box"><div class="csms-box-content"><div class="table-responsive">
+    <table class="table table-lg table-coursemos table-bordered table-local-ubattend table-th-lg">
+      <thead><tr class="tr-border-top">
+        <th>수업일자</th><th>교시</th><th class="text-center">출결 상태</th>
+      </tr></thead>
+      <tbody>
+        <tr><td rowspan="1">2026-09-07</td><td>13:30</td>
+          <td class="text-center"><div class="d-flex justify-content-center">
+            <div class="csms-chips csms-chips-red ">결석</div>
+          </div></td></tr>
+      </tbody>
+    </table>
+  </div></div></div>
+</div>
+
+<script>
+M.util.js_pending('local_ubsmartbook/my');
+require(['local_ubsmartbook/my'], function(amd) {
+  amd.smartAnswer({"endtime":1900000000,"courseid":9999,"smartid":12345,"sesskey":"FAKESESS01","actionurl":"https:\/\/plato.pusan.ac.kr\/local\/ubsmartbook\/action.php","msgSuccess":"출석 처리되었습니다.","msgWrong":"인증번호가 일치하지 않습니다.","msgEnded":"자동출결이 종료되었습니다."});
+  M.util.js_complete('local_ubsmartbook/my');
+});
+</script>
