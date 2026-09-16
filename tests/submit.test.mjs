@@ -23,18 +23,27 @@ const active = () => ({
 
 // --- 응답 해석 ---
 check('ok:true 는 성공', interpretResult({ ok: true, kind: 'success' }).message === '출석 완료!');
-check('인증번호 불일치는 서버 문구 그대로',
-  interpretResult({ ok: false, kind: 'failure', msg: '인증번호가 일치하지 않습니다.' }).message === '인증번호가 일치하지 않습니다.');
+// 서버가 사람 문구를 보내는 경우(모르는 값)에도 우리 문구가 앞에 오고 서버 문구가 뒤따른다.
+check('모르는 사람 문구도 기본 문구 + 서버 응답',
+  interpretResult({ ok: false, kind: 'failure', msg: '인증번호가 틀립니다' }).message
+    === '인증번호가 일치하지 않습니다. (서버 응답: 인증번호가 틀립니다)');
 check('error:ended 는 종료 안내',
   interpretResult({ ok: false, kind: 'ended', msg: 'ended' }).message.includes('종료'));
-// PLATO 자체 화면과 같은 규칙: ended 가 아닌 ok:false 는 전부 "일치하지 않음".
-// 서버 문구가 영어든, 코드처럼 생겼든, 비어 있든 사용자에게는 같은 말을 한다.
-for (const msg of ['Invalid key', 'wrong', '', undefined]) {
-  const r = interpretResult({ ok: false, kind: 'failure', msg });
-  check(`서버 문구 "${msg}" 여도 일치하지 않음으로`, r.message === '인증번호가 일치하지 않습니다.', r.message);
+// 실측(2026-09-16): 틀린 번호는 error:"wrong_key". 코드를 그대로 내보내지 않는다.
+{
+  const r = interpretResult({ ok: false, kind: 'wrong_key', msg: 'wrong_key' });
+  check('wrong_key 는 깔끔한 문구로', r.message === '인증번호가 일치하지 않습니다.', r.message);
+  check('  코드는 detail 로 남는다', r.detail === 'wrong_key');
 }
-check('서버 문구는 detail 로 남는다',
-  interpretResult({ ok: false, kind: 'failure', msg: 'Invalid key' }).detail === 'Invalid key');
+// 모르는 값이 오면 — PLATO 가 새 오류를 더했을 때 — 문구에 서버 응답을 함께 붙인다.
+// "일치하지 않음" 이라고만 하면 사용자가 엉뚱한 번호를 다시 넣는다.
+{
+  const r = interpretResult({ ok: false, kind: 'failure', msg: 'too_many_attempts' });
+  check('모르는 오류는 서버 응답을 함께', r.message.includes('too_many_attempts'), r.message);
+  check('  그래도 기본 문구는 앞에', r.message.startsWith('인증번호가 일치하지 않습니다'), r.message);
+}
+check('서버 문구가 비어 있으면 기본 문구만',
+  interpretResult({ ok: false, kind: 'failure', msg: '' }).message === '인증번호가 일치하지 않습니다.');
 check('404 응답은 세션 만료 안내 (업데이트 안내 아님)', (() => {
   const m = interpretResult({ ok: false, kind: 'rejected' }).message;
   return m.includes('세션이 만료') && !m.includes('업데이트');

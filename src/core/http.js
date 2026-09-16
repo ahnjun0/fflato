@@ -137,7 +137,9 @@ export async function actionPost(profile, actionUrl, fields, sesskey) {
   const error = String(json.error ?? '');
   return {
     ok: false,
-    kind: error === profile.endedError ? 'ended' : 'failure',
+    kind: error === profile.endedError ? 'ended'
+      : error === profile.wrongKeyError ? 'wrong_key'
+      : 'failure',
     msg: error,
     raw: json,
   };

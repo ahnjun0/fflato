@@ -37,9 +37,13 @@ const PROFILE_V2 = {
   typeParam: 'action',
 
   // 응답은 { ok: true } 또는 { ok: false, error: "..." } 다.
-  // error 는 사람이 읽는 문구라 로직에 쓰지 않는다. 다만 'ended' 만은
-  // 서버가 코드처럼 쓰는 값이라 예외로 인정한다 (페이지 인라인 JS 에서 확인).
+  // error 는 로직의 근거로 쓰지 않는다. 서버가 코드처럼 쓰는 값만 알아보고
+  // 문구를 고른다 — 'ended' 는 페이지 인라인 JS 에서, 'wrong_key' 는 실전에서 확인.
   endedError: 'ended',
+  // 서버가 코드처럼 쓰는 값 중 우리가 아는 것. 실측 2026-09-16.
+  // 여기 없는 값이 오면 문구에 서버 응답을 함께 보여준다 — PLATO 가 새 오류를
+  // 더했을 때 사용자가 단서를 잃지 않게.
+  wrongKeyError: 'wrong_key',
 
   themeName: 'coursemos',
 };

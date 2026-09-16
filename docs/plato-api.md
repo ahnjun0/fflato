@@ -76,8 +76,10 @@ Content-Type: application/x-www-form-urlencoded   (jQuery $.post 기본값)
 | 모르는 `action` | **404 HTML** |
 | `smartid` / `authkey` 누락 | 200 JSON `{ok:false, error:"필수 매개변수 (…) 누락"}` |
 
-`error` 는 사람이 읽는 문구라 로직에 쓰지 않는다. `ok` 불리언과 JSON/HTML 여부로만
-판별하므로 언어 설정과 무관하다. 예외는 `'ended'` 하나 — 서버가 코드처럼 쓰는 값이다.
+`error` 는 로직의 근거로 쓰지 않는다. `ok` 불리언과 JSON/HTML 여부로만 판별하므로
+언어 설정과 무관하다. 서버가 코드처럼 쓰는 값 두 개(`ended`, `wrong_key`)만
+알아보고 문구를 고른다. 모르는 값이 오면 기본 문구 뒤에 서버 응답을 그대로 붙인다 —
+PLATO 가 새 오류를 더했을 때 사용자가 단서를 잃지 않게.
 
 ### 서버 메시지는 언어에 따라 바뀐다
 
