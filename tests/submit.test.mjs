@@ -27,6 +27,14 @@ check('인증번호 불일치는 서버 문구 그대로',
   interpretResult({ ok: false, kind: 'failure', msg: '인증번호가 일치하지 않습니다.' }).message === '인증번호가 일치하지 않습니다.');
 check('error:ended 는 종료 안내',
   interpretResult({ ok: false, kind: 'ended', msg: 'ended' }).message.includes('종료'));
+// PLATO 자체 화면과 같은 규칙: ended 가 아닌 ok:false 는 전부 "일치하지 않음".
+// 서버 문구가 영어든, 코드처럼 생겼든, 비어 있든 사용자에게는 같은 말을 한다.
+for (const msg of ['Invalid key', 'wrong', '', undefined]) {
+  const r = interpretResult({ ok: false, kind: 'failure', msg });
+  check(`서버 문구 "${msg}" 여도 일치하지 않음으로`, r.message === '인증번호가 일치하지 않습니다.', r.message);
+}
+check('서버 문구는 detail 로 남는다',
+  interpretResult({ ok: false, kind: 'failure', msg: 'Invalid key' }).detail === 'Invalid key');
 check('404 응답은 세션 만료 안내 (업데이트 안내 아님)', (() => {
   const m = interpretResult({ ok: false, kind: 'rejected' }).message;
   return m.includes('세션이 만료') && !m.includes('업데이트');
@@ -92,7 +100,7 @@ check('세션 정보 없으면 거부',
   let calls = 0;
   await submitAttendance(session(), active(), '111111', {
     transport: async () => { calls++; return { ok: false, kind: 'rejected' }; },
-    refresh: async () => {},
+    refresh: async (s) => { s.sesskey = 'NEW'; },
   });
   check('404 가 계속돼도 재시도는 1회뿐', calls === 2, `호출 ${calls}회`);
 }
@@ -109,7 +117,7 @@ check('세션 정보 없으면 거부',
   // 사용자가 인증번호를 반복해서 누르는 헛수고를 하지 않는다.
   const r = await submitAttendance(session(), active(), '111111', {
     transport: async () => ({ ok: false, kind: 'rejected' }),
-    refresh: async () => {},
+    refresh: async (s) => { s.sesskey = 'NEW'; },
   });
   check('갱신 후에도 404 면 규약 변경으로 진단', r.kind === 'contract_changed', r.kind);
   check('규약 변경은 업데이트를 안내', /업데이트/.test(r.message), r.message);
@@ -120,9 +128,21 @@ check('세션 정보 없으면 거부',
   const r = await submitAttendance(session(), active(), '111111', {
     transport: async () => (++calls === 1 ? { ok: false, kind: 'rejected' }
                                           : { ok: false, kind: 'wrong_code', msg: 'x' }),
-    refresh: async () => {},
+    refresh: async (s) => { s.sesskey = 'NEW'; },
   });
   check('갱신 후 다른 응답이면 규약 변경이 아님', r.kind !== 'contract_changed', r.kind);
+}
+{
+  // 틀린 번호가 (관측된 적 없지만) 404 로 온다면? sesskey 를 새로 받아도 값이
+  // 그대로다 — 원인이 sesskey 가 아니니까. 그때 재제출하면 같은 틀린 번호를
+  // 두 번 보내 시도 횟수를 두 번 쓴다. 값이 그대로면 보내지 않는다.
+  let calls = 0;
+  const r = await submitAttendance(session(), active(), '111111', {
+    transport: async () => { calls++; return { ok: false, kind: 'rejected' }; },
+    refresh: async () => { /* sesskey 그대로 */ },
+  });
+  check('sesskey 가 그대로면 재제출하지 않는다', calls === 1, `호출 ${calls}회`);
+  check('  그래도 사용자에게는 이유를 말한다', r.kind === 'contract_changed', r.kind);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -58,9 +58,14 @@ POST /local/ubsmartbook/action.php
 Content-Type: application/x-www-form-urlencoded   (jQuery $.post 기본값)
   action=smartanswer  id=<courseid>  smartid=<n>  sesskey=<...>  authkey=<입력>
 → 200 application/json   {"ok":true}
-                       | {"ok":false,"error":"인증번호가 일치하지 않습니다."}
+                       | {"ok":false,"error":"wrong_key"}   인증번호 불일치 (실측 2026-09-16)
                        | {"ok":false,"error":"ended"}        자동출결 종료
 ```
+
+`wrong_key` 는 사람이 읽는 문구가 아니라 코드다. PLATO 자체 화면도 이 값을 그대로
+보여주지 않고 "인증번호가 일치하지 않습니다" 로 바꿔 쓴다 — `ok:false` 이면서
+`ended` 가 아니면 전부 불일치로 취급한다. 우리도 같은 규칙이다 (`interpretResult`).
+2.0.0 은 서버 문구를 우선 표시해 화면에 `wrong_key` 가 그대로 떴다.
 
 오류 동작:
 

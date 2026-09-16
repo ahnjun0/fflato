@@ -39,12 +39,21 @@ export async function submitAttendance(session, active, authkey, options = {}) {
   // 인증번호가 틀린 경우(ok:false + error)는 절대 재시도하지 않는다.
   if (result.kind === 'rejected') {
     try {
+      const before = session.sesskey;
       await refresh(session);
-      result = await post(session, active, code, { retried: true, transport });
-      // 방금 받은 sesskey 로도 거부됐다면 세션 만료가 아니다. 엔드포인트나
-      // action 이름이 바뀐 쪽이 훨씬 그럴듯하다 — action 값은 페이지에서
-      // 읽을 수 없어 우리가 상수로 채우는 유일한 값이다.
-      if (result.kind === 'rejected') result = { ...result, kind: 'contract_changed' };
+      // sesskey 가 그대로라면 404 의 원인은 sesskey 가 아니다. 그런데도 다시
+      // 보내면 같은 인증번호를 두 번 제출하게 된다 — 틀린 번호였다면 시도
+      // 횟수를 두 번 쓰는 셈이다. 틀린 번호가 404 로 오는지는 관측한 적이
+      // 없으므로(PLATO 코드상 200 JSON 이 맞다), 확인될 때까지 이쪽이 안전하다.
+      if (session.sesskey === before) {
+        result = { ...result, kind: 'contract_changed' };
+      } else {
+        result = await post(session, active, code, { retried: true, transport });
+        // 방금 받은 sesskey 로도 거부됐다면 세션 만료가 아니다. 엔드포인트나
+        // action 이름이 바뀐 쪽이 훨씬 그럴듯하다 — action 값은 페이지에서
+        // 읽을 수 없어 우리가 상수로 채우는 유일한 값이다.
+        if (result.kind === 'rejected') result = { ...result, kind: 'contract_changed' };
+      }
     } catch (err) {
       return { ok: false, kind: 'not_logged_in', message: err.message };
     }
@@ -68,7 +77,18 @@ function post(session, active, code, { retried = false, transport = actionPost }
   return transport(session.profile, target, fields, session.sesskey);
 }
 
-/** 응답을 화면에 그대로 쓸 수 있는 형태로 옮긴다. */
+/**
+ * 응답을 화면에 그대로 쓸 수 있는 형태로 옮긴다.
+ *
+ * 틀린 인증번호의 판정은 PLATO 자체 화면과 같은 규칙이다 (실측, 2026-09-01
+ * 페이지의 인라인 핸들러):
+ *   ok:true             → 출석 처리
+ *   error === 'ended'   → 자동출결 종료
+ *   그 밖의 ok:false     → "인증번호가 일치하지 않습니다"
+ * PLATO 도 서버의 error 문구를 화면에 쓰지 않는다. 우리도 문구를 보고 판정하지
+ * 않는다 — 서버가 무엇을 적어 보내든, 언어 설정이 무엇이든 같은 결과다.
+ * 서버 문구는 detail 로만 남겨 debug 에서 볼 수 있게 한다.
+ */
 export function interpretResult(res) {
   if (res.ok) return { ok: true, kind: 'success', message: '출석 완료!' };
 
@@ -78,7 +98,7 @@ export function interpretResult(res) {
     contract_changed: 'PLATO 제출 방식이 바뀐 것 같습니다. 확장 프로그램 업데이트가 필요합니다.',
     non_json: 'PLATO 응답 형식이 바뀌었습니다. 확장 프로그램 업데이트가 필요합니다.',
     no_sesskey: '로그인 정보를 확인할 수 없습니다. PLATO에 다시 로그인해주세요.',
-  }[res.kind] || res.msg || '인증번호가 일치하지 않습니다.';
+  }[res.kind] || '인증번호가 일치하지 않습니다.';
 
-  return { ok: false, kind: res.kind || 'failure', message };
+  return { ok: false, kind: res.kind || 'failure', message, detail: res.msg || null };
 }
