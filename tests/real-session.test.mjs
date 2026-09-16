@@ -54,6 +54,16 @@ check('출석 완료 상태에서는 세션 없음', parseSession(P, pageOf(done
   check('  id / smartid', s.fields.id === '9999' && s.fields.smartid === '12345', JSON.stringify(s.fields));
   check('  action 값은 프로파일 상수로 (페이지에 없다)', s.fields.action === 'smartanswer');
   check('  sesskey 는 넣지 않는다 (제출 때 채운다)', !('sesskey' in s.fields));
+  // 설정 JSON 은 사용자 문구도 싣는다. 서버가 언어에 맞춰 준 것이라 그대로 쓴다.
+  check('  서버 문구를 읽는다 (wrong/ended/exceeded/success)',
+    s.messages && s.messages.wrong_key === '인증번호가 일치하지 않습니다.'
+      && s.messages.ended && s.messages.exceeded && s.messages.success,
+    JSON.stringify(s.messages));
+}
+{
+  // 옛 인라인 형태에는 문구가 없다. 없으면 빈 객체 — 우리 문구로 대신한다.
+  const s = parseSession(P, pageOf(open, '9999'));
+  check('옛 형태는 문구 없음 → 빈 객체', s.messages === undefined || Object.keys(s.messages).length === 0);
 }
 {
   // 폼은 있는데 어느 형태로도 못 읽으면 추측하지 않는다

@@ -58,20 +58,29 @@ POST /local/ubsmartbook/action.php
 Content-Type: application/x-www-form-urlencoded   (jQuery $.post 기본값)
   action=smartanswer  id=<courseid>  smartid=<n>  sesskey=<...>  authkey=<입력>
 → 200 application/json   {"ok":true}
-                       | {"ok":false,"error":"wrong_key"}   인증번호 불일치 (실측 2026-09-16)
-                       | {"ok":false,"error":"ended"}        자동출결 종료 (미관측 — 아래 참고)
+                       | {"ok":false,"error":"wrong_key","remain":<n>}   불일치 · 남은 시도 (실측 2026-09-16)
+                       | {"ok":false,"error":"exceeded"}                 시도 횟수 초과
+                       | {"ok":false,"error":"ended"}                    자동출결 종료
 ```
 
-`ended` 는 서버 응답으로 본 적이 없다. PLATO 페이지의 인라인 핸들러가
-`res.error === 'ended'` 를 비교하는 것을 읽었을 뿐이다. 서버와 핸들러를 같은
-개발자가 짰으니 값 자체는 거의 확실하지만, 언제 오는지(타이머 만료 후인지,
-교수가 닫은 뒤인지)는 모른다. 틀려도 피해는 문구뿐이다 — 모르는 값으로 취급되어
-"일치하지 않습니다 (서버 응답: …)" 로 뜨고, 입력칸은 잠기지 않는다.
+세 코드는 PLATO 의 AMD 핸들러 `local_ubsmartbook/my` (2026-09-16 저장본의
+`requirejs.php`) 에서 읽었다. `wrong_key` 만 실제 응답으로도 봤다. 핸들러 원문:
 
-`wrong_key` 는 사람이 읽는 문구가 아니라 코드다. PLATO 자체 화면도 이 값을 그대로
-보여주지 않고 "인증번호가 일치하지 않습니다" 로 바꿔 쓴다 — `ok:false` 이면서
-`ended` 가 아니면 전부 불일치로 취급한다. 우리도 같은 규칙이다 (`interpretResult`).
-2.0.0 은 서버 문구를 우선 표시해 화면에 `wrong_key` 가 그대로 떴다.
+```js
+if (res && res.ok) showMsg(cfg.msgSuccess)
+else {
+  var msg = cfg.msgWrong;
+  if (res.error === 'ended')         msg = cfg.msgEnded;
+  else if (res.error === 'exceeded') { msg = cfg.msgExceeded; remainEl.textContent = "0"; }
+  else if (res.error === 'wrong_key' && typeof res.remain === 'number') remainEl.textContent = res.remain;
+  showMsg(msg, true);
+}
+```
+
+두 가지가 여기서 나온다. (1) **모르는 코드는 PLATO 도 "불일치" 로 취급한다.** 우리도
+같되, 서버 응답을 뒤에 붙여 단서를 남긴다. (2) **문구는 페이지 설정 JSON 이 준다**
+(`msgWrong`, `msgEnded`, `msgExceeded`, `msgSuccess`). 서버가 언어에 맞춰 준 것이라
+우리가 적어 둔 한국어 대신 그걸 쓴다. 옛 인라인 형태에는 없으므로 그때는 우리 문구다.
 
 오류 동작:
 
@@ -82,10 +91,7 @@ Content-Type: application/x-www-form-urlencoded   (jQuery $.post 기본값)
 | 모르는 `action` | **404 HTML** |
 | `smartid` / `authkey` 누락 | 200 JSON `{ok:false, error:"필수 매개변수 (…) 누락"}` |
 
-`error` 는 로직의 근거로 쓰지 않는다. `ok` 불리언과 JSON/HTML 여부로만 판별하므로
-언어 설정과 무관하다. 서버가 코드처럼 쓰는 값 두 개(`ended`, `wrong_key`)만
-알아보고 문구를 고른다. 모르는 값이 오면 기본 문구 뒤에 서버 응답을 그대로 붙인다 —
-PLATO 가 새 오류를 더했을 때 사용자가 단서를 잃지 않게.
+`error` 는 위 세 코드로만 분기한다. 문구를 보고 판정하지 않으므로 언어 설정과 무관하다.
 
 ### 서버 메시지는 언어에 따라 바뀐다
 

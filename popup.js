@@ -319,8 +319,8 @@ async function doSubmit(index) {
   if (result.ok) {
     input.style.display = 'none';
     btn.style.display = 'none';
-  } else if (result.kind === 'ended' || result.kind === 'contract_changed') {
-    // 자동출결이 끝났다. 더 눌러 봐야 소용없다.
+  } else if (['ended', 'exceeded', 'contract_changed'].includes(result.kind)) {
+    // 자동출결이 끝났거나 시도 횟수를 다 썼다. 더 눌러 봐야 소용없다.
     input.disabled = true;
     btn.disabled = true;
     btn.textContent = label;

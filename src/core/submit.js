@@ -59,7 +59,7 @@ export async function submitAttendance(session, active, authkey, options = {}) {
     }
   }
 
-  return interpretResult(result);
+  return interpretResult(result, active.messages || {});
 }
 
 function post(session, active, code, { retried = false, transport = actionPost } = {}) {
@@ -80,32 +80,44 @@ function post(session, active, code, { retried = false, transport = actionPost }
 /**
  * 응답을 화면에 그대로 쓸 수 있는 형태로 옮긴다.
  *
- * 틀린 인증번호의 판정은 PLATO 자체 화면과 같은 규칙이다 (실측, 2026-09-01
- * 페이지의 인라인 핸들러):
- *   ok:true               → 출석 처리
- *   error === 'ended'     → 자동출결 종료
- *   그 밖의 ok:false       → "인증번호가 일치하지 않습니다"
- * 실측(2026-09-16)으로 틀린 번호는 error:"wrong_key" 다. 코드지 문구가 아니라
- * 그대로 내보내면 안 된다 — 2.0.0 이 그렇게 해서 화면에 wrong_key 가 떴다.
+ * 규칙은 PLATO 의 AMD 핸들러(2026-09-16, local_ubsmartbook/my)와 같다:
+ *   ok:true              → 출석 처리
+ *   error 'ended'        → 자동출결 종료
+ *   error 'exceeded'     → 시도 횟수 초과 (남은 횟수 0)
+ *   error 'wrong_key'    → 불일치. remain 에 남은 횟수가 실려 온다
+ *   그 밖의 error        → PLATO 도 "불일치" 로 취급한다
  *
- * 다만 **모르는 값**은 다르다. PLATO 가 새 오류(시도 횟수 초과 등)를 더했을 때
- * "일치하지 않음" 이라고만 하면 사용자가 엉뚱한 번호를 다시 넣는다. 아는 코드면
- * 깔끔한 문구, 모르는 값이면 문구에 서버 응답을 함께 붙인다.
+ * 문구는 페이지 설정 JSON 이 준 것(messages)을 우선 쓴다. 서버가 언어에 맞춰
+ * 준 것이라 우리가 적어 둔 한국어보다 낫다. 없으면 우리 문구로.
+ *
+ * 모르는 코드는 PLATO 처럼 "불일치" 로 말하되, 서버 응답을 뒤에 붙인다.
+ * PLATO 가 새 코드를 더했을 때 사용자가 단서를 잃지 않게 — 2.0.0 이 서버
+ * 코드를 그대로 내보내 화면에 wrong_key 가 떴던 것과, 코드를 숨겨 엉뚱한 번호를
+ * 다시 넣게 하는 것 사이의 절충이다.
  */
-export function interpretResult(res) {
-  if (res.ok) return { ok: true, kind: 'success', message: '출석 완료!' };
+export function interpretResult(res, messages = {}) {
+  if (res.ok) return { ok: true, kind: 'success', message: messages.success || '출석 완료!' };
 
-  const known = {
+  const ours = {
     ended: '자동출결이 종료되었습니다.',
     wrong_key: '인증번호가 일치하지 않습니다.',
+    exceeded: '인증번호 시도 횟수를 초과했습니다.',
     rejected: '세션이 만료되었습니다. 새로고침 후 다시 시도해주세요.',
     contract_changed: 'PLATO 제출 방식이 바뀐 것 같습니다. 확장 프로그램 업데이트가 필요합니다.',
     non_json: 'PLATO 응답 형식이 바뀌었습니다. 확장 프로그램 업데이트가 필요합니다.',
     no_sesskey: '로그인 정보를 확인할 수 없습니다. PLATO에 다시 로그인해주세요.',
-  }[res.kind];
+  };
+  const kind = res.kind || 'failure';
   const detail = res.msg || null;
-  const message = known
-    || (detail ? `인증번호가 일치하지 않습니다. (서버 응답: ${detail})` : '인증번호가 일치하지 않습니다.');
+  const remain = typeof res.remain === 'number' ? res.remain : null;
 
-  return { ok: false, kind: res.kind || 'failure', message, detail };
+  let message = messages[kind] || ours[kind];
+  if (!message) {
+    // 모르는 코드
+    message = messages.wrong_key || ours.wrong_key;
+    if (detail) message += ` (서버 응답: ${detail})`;
+  }
+  if (kind === 'wrong_key' && remain !== null) message += ` 남은 시도 ${remain}회.`;
+
+  return { ok: false, kind, message, detail, remain };
 }

@@ -11,7 +11,7 @@ const PROFILE = {
   paths: { smartbookAction: '/local/ubsmartbook/action.php' },
   typeParam: 'action',
   actions: { submitAttendance: 'smartanswer' },
-  endedError: 'ended',
+  errorCodes: { ended: 'ended', wrong_key: 'wrong_key', exceeded: 'exceeded' },
 };
 const session = () => ({ profile: PROFILE, sesskey: 'SESS1' });
 // 실제 페이지의 $.post 에서 읽어 온 형태
@@ -44,6 +44,25 @@ check('error:ended 는 종료 안내',
 }
 check('서버 문구가 비어 있으면 기본 문구만',
   interpretResult({ ok: false, kind: 'failure', msg: '' }).message === '인증번호가 일치하지 않습니다.');
+// 2026-09-16 AMD 핸들러: wrong_key 에는 remain(남은 횟수), exceeded 는 횟수 초과.
+{
+  const r = interpretResult({ ok: false, kind: 'wrong_key', msg: 'wrong_key', remain: 3 });
+  check('남은 시도 횟수를 함께 보여준다', r.message.includes('남은 시도 3회'), r.message);
+  check('  remain 을 그대로 실어 준다', r.remain === 3);
+}
+{
+  const r = interpretResult({ ok: false, kind: 'exceeded', msg: 'exceeded' });
+  check('exceeded 는 횟수 초과 안내', r.kind === 'exceeded' && /초과/.test(r.message), r.message);
+}
+// 문구는 페이지 설정 JSON 이 준 것을 우선한다 — 서버가 언어에 맞춰 준 값이다.
+{
+  const en = { wrong_key: 'Wrong key.', ended: 'Session ended.', exceeded: 'Too many attempts.', success: 'Done.' };
+  check('설정 JSON 의 문구를 우선 쓴다',
+    interpretResult({ ok: false, kind: 'wrong_key', msg: 'wrong_key' }, en).message.startsWith('Wrong key.'));
+  check('  성공 문구도', interpretResult({ ok: true }, en).message === 'Done.');
+  check('  모르는 코드도 그 언어의 불일치 문구 + 서버 응답',
+    interpretResult({ ok: false, kind: 'failure', msg: 'weird' }, en).message === 'Wrong key. (서버 응답: weird)');
+}
 check('404 응답은 세션 만료 안내 (업데이트 안내 아님)', (() => {
   const m = interpretResult({ ok: false, kind: 'rejected' }).message;
   return m.includes('세션이 만료') && !m.includes('업데이트');

@@ -122,10 +122,17 @@ function readConfig(profile, html) {
   if (cfg.courseid !== undefined) fields.id = String(cfg.courseid);
   fields[profile.typeParam] = profile.actions.submitAttendance;
 
+  // 서버가 언어에 맞춰 준 사용자 문구. 있는 것만 담는다.
+  const messages = {};
+  for (const [code, key] of Object.entries(profile.messageKeys || {})) {
+    if (typeof cfg[key] === 'string' && cfg[key]) messages[code] = cfg[key];
+  }
+
   return {
     action: new URL(cfg.actionurl, profile.base).toString(),
     fields,
     endTime: Number(cfg.endtime) || null,
+    messages,
     // action 값은 페이지에 없어서 상수로 채웠다. 캡처 대조표가 이 사실을
     // 드러내야 한다 — 그러지 않으면 상수를 상수와 비교하며 "일치" 라고 한다.
     assumed: [profile.typeParam],

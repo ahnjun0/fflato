@@ -28,10 +28,12 @@ for (const f of files) {
 }
 check('한국어 문자열로 분기하는 코드 없음', offenders.length === 0, offenders.join(' | ') || 'OK');
 
-// endedError 는 서버가 코드처럼 쓰는 값이라 예외다. 영문 소문자여야 한다.
+// errorCodes 는 서버가 코드처럼 쓰는 값이라 예외다. 영문 소문자·밑줄이어야 한다.
 const { profileForHost } = await import('../src/config/endpoints.js');
 const p = profileForHost('plato.pusan.ac.kr');
-check('endedError 는 언어 무관한 코드값', /^[a-z]+$/.test(p.endedError), p.endedError);
+const codes = Object.values(p.errorCodes || {});
+check('errorCodes 가 정의되어 있다', codes.length >= 3, JSON.stringify(p.errorCodes));
+check('errorCodes 는 언어 무관한 코드값', codes.every((c) => /^[a-z_]+$/.test(c)), codes.join());
 check('actions 값도 언어 무관', Object.values(p.actions).every((a) => /^[a-z]+$/i.test(a)), JSON.stringify(p.actions));
 
 console.log(`\n${pass} passed, ${fail} failed`);
