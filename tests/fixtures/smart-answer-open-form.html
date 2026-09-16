@@ -1,0 +1,52 @@
+<!--
+  자동출결이 열려 있는 상태 — 2026-09-16 형태.
+
+  폼에 히든 필드가 생겼다. 서버가 "이걸 보내라" 고 적어 둔 그대로라, 지금까지
+  상수로 채우던 action 값까지 페이지에서 읽을 수 있다. 설정 JSON 도 그대로
+  있어서 마감 시각과 문구는 거기서 가져온다. 버튼이 "저장" → "확인",
+  alert() 대신 #sb-smart-answer-msg 에 인라인 표시.
+
+  값은 전부 지어낸 것이다. 실제 서버 응답은 저장소에 넣지 않는다
+  (MOODLE_WSTOKEN, sesskey, 이메일이 들어 있다).
+-->
+<div role="main">
+  <h2>내 출석현황</h2>
+
+  <div class="alert alert-info">
+    <h5>자동출결 인증번호 입력</h5>
+    <p>교수자가 안내한 인증번호를 입력하면 출석 처리됩니다.
+       (남은시간: <b id="sb-smart-answer-timer">4:12</b>)</p>
+    <form id="sb-smart-answer-form" action="https://plato.pusan.ac.kr/local/ubsmartbook/action.php" method="post" class="d-flex">
+      <input type="hidden" name="id" value="9999">
+      <input type="hidden" name="action" value="smartanswer">
+      <input type="hidden" name="sesskey" value="FAKESESS01">
+      <input type="hidden" name="smartid" value="12345">
+      <input type="text" id="sb-smart-answer-key" name="authkey" class="form-control"
+             inputmode="numeric" placeholder="인증번호를 입력하세요" required="">
+      <button type="submit" class="btn btn-primary btn-sm">확인</button>
+    </form>
+    <div id="sb-smart-answer-msg" class="mt-2 fw-bold" role="alert" aria-live="polite" hidden=""></div>
+  </div>
+
+  <div class="csms-box"><div class="csms-box-content"><div class="table-responsive">
+    <table class="table table-lg table-coursemos table-bordered table-local-ubattend table-th-lg">
+      <thead><tr class="tr-border-top">
+        <th>수업일자</th><th>교시</th><th class="text-center">출결 상태</th>
+      </tr></thead>
+      <tbody>
+        <tr><td rowspan="1">2026-09-16</td><td>10:30</td>
+          <td class="text-center"><div class="d-flex justify-content-center">
+            <div class="csms-chips csms-chips-red ">결석</div>
+          </div></td></tr>
+      </tbody>
+    </table>
+  </div></div></div>
+</div>
+
+<script>
+M.util.js_pending('local_ubsmartbook/my');
+require(['local_ubsmartbook/my'], function(amd) {
+  amd.smartAnswer({"endtime":1900000000,"courseid":9999,"smartid":12345,"sesskey":"FAKESESS01","actionurl":"https:\/\/plato.pusan.ac.kr\/local\/ubsmartbook\/action.php","msgSuccess":"출석 처리되었습니다.","msgWrong":"인증번호가 일치하지 않습니다.","msgEnded":"자동출결이 종료되었습니다.","msgExceeded":"입력 시도 0회 초과하여서 부정출결처리 됩니다."});
+  M.util.js_complete('local_ubsmartbook/my');
+});
+</script>

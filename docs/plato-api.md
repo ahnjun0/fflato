@@ -24,32 +24,59 @@
 ## 인증번호 입력
 
 세션이 열리면 `/local/ubsmartbook/my.php?id=<courseid>` 에 폼이 렌더된다.
+세션이 없거나 출석이 끝나면 이 블록은 통째로 사라진다 (출석 직후 "출석
+처리되었습니다" 를 0.8초 보여주고 새로고침한다).
+
+폼은 9월 한 달 동안 세 번 바뀌었다. 리더를 여럿 두고 순서대로 시도하는 이유다.
+
+### 2026-09-16 — 폼에 히든 필드 (현재, `readForm`)
 
 ```html
-<div class="alert alert-info">
-  <h5>자동출결 인증번호 입력</h5>
-  <p>… (남은시간: <b id="sb-smart-answer-timer">4:08</b>)</p>
-  <form id="sb-smart-answer-form">
-    <input type="text" id="sb-smart-answer-key" ...>
-    <button type="submit">저장</button>
-  </form>
-</div>
+<form id="sb-smart-answer-form" action="…/local/ubsmartbook/action.php" method="post" class="d-flex">
+  <input type="hidden" name="id" value="6539">
+  <input type="hidden" name="action" value="smartanswer">
+  <input type="hidden" name="sesskey" value="…">
+  <input type="hidden" name="smartid" value="3197">
+  <input type="text" id="sb-smart-answer-key" name="authkey" inputmode="numeric" …>
+  <button type="submit" class="btn btn-primary btn-sm">확인</button>
+</form>
+<div id="sb-smart-answer-msg" class="mt-2 fw-bold" role="alert" hidden></div>
 ```
 
-**폼에 `name` 속성도 히든 필드도 없다.** 제출에 필요한 값은 전부 인라인
-스크립트에 있다.
+서버가 "이걸 보내라" 고 적어 둔 그대로라 가장 좋은 출처다. 지금까지 상수로
+채우던 `action=smartanswer` 를 페이지에서 읽는다 — 캡처 대조표의 `assumed` 가
+빈다. `sesskey` 와 `authkey` 는 읽지 않고 제출 때 채운다. 마감 시각과 문구는
+폼에 없으므로 아래 설정 JSON 에서 가져온다 (같은 페이지에 그대로 있다).
+
+AMD 핸들러가 참조하는 `#sb-smart-remain`(남은 횟수 표시) 요소는 이 저장본에
+**없다.** 코드는 있지만 아직 렌더되지 않는다.
+
+### 2026-09-07 — 설정 JSON (`readConfig`)
 
 ```js
-var endtime = 1788327638;                       // 마감 시각 (절대 유닉스초)
+require(['local_ubsmartbook/my'], amd => amd.smartAnswer({
+  "endtime":1788760181, "courseid":6552, "smartid":995, "sesskey":"…",
+  "actionurl":"https:\/\/plato.pusan.ac.kr\/local\/ubsmartbook\/action.php",
+  "msgSuccess":"출석 처리되었습니다.", "msgWrong":"인증번호가 일치하지 않습니다.",
+  "msgEnded":"자동출결이 종료되었습니다.",
+  "msgExceeded":"입력 시도 0회 초과하여서 부정출결처리 됩니다."   // 09-16 추가
+}));
+```
+
+폼에 `name` 이 없던 시기. 감싸는 함수 이름을 보지 않고 `"smartid"` 를 담은 JSON
+객체로 찾는다. `action` 값은 여기에도 없어 상수로 채웠다.
+
+### 2026-09-01 — 인라인 `$.post` (`readInlinePost`)
+
+```js
+var endtime = 1788327638;
 $.post(M.cfg.wwwroot + '/local/ubsmartbook/action.php', {
-  id: 1001, action: 'smartanswer',
-  sesskey: M.cfg.sesskey, smartid: 12345, authkey: authkey
+  id: 1001, action: 'smartanswer', sesskey: M.cfg.sesskey, smartid: 12345, authkey: authkey
 })
 ```
 
-그래서 이 `$.post` 호출을 통째로 읽어 URL 과 파라미터를 그대로 쓴다
-(`src/core/attendance.js` 의 `parsePayload`). 이름을 하드코딩하지 않으므로
-파라미터가 늘어도 따라간다.
+호출을 통째로 읽어 파라미터를 그대로 쓴다 (`parsePayload`). PLATO 가 되돌릴
+수도 있으니 남겨 둔다.
 
 ## 제출
 
