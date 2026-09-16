@@ -59,8 +59,14 @@ Content-Type: application/x-www-form-urlencoded   (jQuery $.post 기본값)
   action=smartanswer  id=<courseid>  smartid=<n>  sesskey=<...>  authkey=<입력>
 → 200 application/json   {"ok":true}
                        | {"ok":false,"error":"wrong_key"}   인증번호 불일치 (실측 2026-09-16)
-                       | {"ok":false,"error":"ended"}        자동출결 종료
+                       | {"ok":false,"error":"ended"}        자동출결 종료 (미관측 — 아래 참고)
 ```
+
+`ended` 는 서버 응답으로 본 적이 없다. PLATO 페이지의 인라인 핸들러가
+`res.error === 'ended'` 를 비교하는 것을 읽었을 뿐이다. 서버와 핸들러를 같은
+개발자가 짰으니 값 자체는 거의 확실하지만, 언제 오는지(타이머 만료 후인지,
+교수가 닫은 뒤인지)는 모른다. 틀려도 피해는 문구뿐이다 — 모르는 값으로 취급되어
+"일치하지 않습니다 (서버 응답: …)" 로 뜨고, 입력칸은 잠기지 않는다.
 
 `wrong_key` 는 사람이 읽는 문구가 아니라 코드다. PLATO 자체 화면도 이 값을 그대로
 보여주지 않고 "인증번호가 일치하지 않습니다" 로 바꿔 쓴다 — `ok:false` 이면서
