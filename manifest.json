@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FFlato",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "PLATO 어디서든 확장 프로그램 아이콘을 눌러 바로 출결할 수 있는 확장 프로그램",
   "permissions": [
     "storage"
