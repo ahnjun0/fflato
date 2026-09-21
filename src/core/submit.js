@@ -117,7 +117,9 @@ export function interpretResult(res, messages = {}) {
     message = messages.wrong_key || ours.wrong_key;
     if (detail) message += ` (서버 응답: ${detail})`;
   }
-  if (kind === 'wrong_key' && remain !== null) message += ` 남은 시도 ${remain}회.`;
+  // PLATO 핸들러와 같은 조건: remain >= 0 일 때만 보여준다. 서버는 제한이 없는
+  // 세션에 -1 을 보낸다 (실측 2026-09-21). "-1회" 라고 쓰면 고장처럼 보인다.
+  if (kind === 'wrong_key' && remain !== null && remain >= 0) message += ` 남은 시도 ${remain}회.`;
 
   return { ok: false, kind, message, detail, remain };
 }

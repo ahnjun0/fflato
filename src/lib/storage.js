@@ -5,7 +5,7 @@
 //
 // localStorage 는 쓰지 않는다 — 사용자가 인터넷 사용 기록을 지울 때 함께
 // 지워질 수 있다. storage.sync 도 쓰지 않는다 (출석 기록이 벤더 동기화
-// 서버로 올라간다). 자세한 이유는 docs/packaging.md 참고.
+// 서버로 올라간다).
 
 const memory = new Map();
 

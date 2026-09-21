@@ -51,6 +51,13 @@ check('서버 문구가 비어 있으면 기본 문구만',
   check('  remain 을 그대로 실어 준다', r.remain === 3);
 }
 {
+  // 실측(2026-09-21): 제한 없는 세션에는 remain:-1 이 온다. PLATO 도 >= 0 일 때만 보여준다.
+  const r = interpretResult({ ok: false, kind: 'wrong_key', msg: 'wrong_key', remain: -1 });
+  check('remain -1 은 "남은 시도" 를 붙이지 않는다', !r.message.includes('남은 시도'), r.message);
+  check('  0 은 붙인다 (마지막 시도였음)',
+    interpretResult({ ok: false, kind: 'wrong_key', msg: 'wrong_key', remain: 0 }).message.includes('남은 시도 0회'));
+}
+{
   const r = interpretResult({ ok: false, kind: 'exceeded', msg: 'exceeded' });
   check('exceeded 는 횟수 초과 안내', r.kind === 'exceeded' && /초과/.test(r.message), r.message);
 }

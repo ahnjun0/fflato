@@ -7,7 +7,6 @@
 //
 // 프로파일 구조를 유지하는 이유는 themeName 지문 때문이다.
 // PLATO 가 또 바뀌면 openSession 이 그 자리에서 알아차린다.
-// 개편 전 시스템의 규약은 docs/plato-api.md 에 기록해 두었다.
 
 export const PROFILE_ID = 'v2';
 
