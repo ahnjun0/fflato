@@ -1,0 +1,6 @@
+{
+  "name": "fflato",
+  "private": true,
+  "type": "module",
+  "description": "PLATO 빠른 출결 확장 프로그램 (소스는 ES 모듈). 배포 버전은 manifest.json 참조."
+}

@@ -1,0 +1,17 @@
+node_modules/
+*.zip
+.DS_Store
+
+# PLATO 저장본은 저장소에 넣지 않는다 — MOODLE_WSTOKEN, sesskey, 이메일이 들어 있다.
+# 로컬에 있으면 tests/real-session.test.mjs 가 합성 픽스처와 대조한다.
+*.html.orig
+출석*.html
+출석*_files/
+결석*.html
+결석*_files/
+메인페이지*.html
+메인페이지*_files/
+새로 바뀐*.html
+새로 바뀐*_files/
+출결*.html
+출결*_files/

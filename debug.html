@@ -131,14 +131,18 @@
 </head>
 <body>
   <h1>PLATO 빠른 출결 - Debug</h1>
-  <p class="subtitle">출결 스캔 과정을 상세히 확인할 수 있습니다.</p>
+  <p class="subtitle">스캔 과정과 PLATO 규약 자가진단을 확인할 수 있습니다.</p>
 
   <div class="toolbar">
     <button class="btn btn-primary" id="btn-scan">스캔 실행</button>
+    <button class="btn" id="btn-capture">캡처 모드 스캔</button>
+    <button class="btn" id="btn-health">자가진단</button>
     <button class="btn" id="btn-clear-log">로그 지우기</button>
+    <button class="btn" id="btn-clear-session">sesskey 초기화</button>
+    <button class="btn" id="btn-clear-schedule">시간표 캐시 지우기</button>
+    <button class="btn" id="btn-clear-records">기록 지우기</button>
   </div>
 
-  <!-- 실시간 로그 -->
   <div class="card">
     <div class="card-header">실시간 로그</div>
     <div class="card-body">
@@ -146,43 +150,51 @@
     </div>
   </div>
 
-  <!-- 과목 목록 -->
-  <div class="card" id="courses-card" style="display:none">
-    <div class="card-header">
-      수강 과목 목록
-      <span class="badge badge-gray" id="courses-count"></span>
-    </div>
-    <div class="card-body" id="courses-body"></div>
+  <div class="card" id="plan-card" style="display:none">
+    <div class="card-header">스캔 계획 <span class="badge badge-gray" id="plan-count"></span></div>
+    <div class="card-body"></div>
   </div>
 
-  <!-- 스캔 상세 결과 -->
-  <div class="card" id="detail-card" style="display:none">
-    <div class="card-header">
-      과목별 스캔 상세
-      <span class="badge badge-gray" id="detail-count"></span>
-    </div>
-    <div class="card-body" id="detail-body"></div>
-  </div>
-
-  <!-- 활성 세션 -->
   <div class="card" id="active-card" style="display:none">
-    <div class="card-header">
-      활성 출결 세션
-      <span class="badge badge-green" id="active-count"></span>
-    </div>
-    <div class="card-body" id="active-body"></div>
+    <div class="card-header">활성 출결 세션 <span class="badge badge-gray" id="active-count"></span></div>
+    <div class="card-body"></div>
   </div>
 
-  <!-- 결석 현황 -->
-  <div class="card" id="absence-card" style="display:none">
-    <div class="card-header">
-      결석 현황
-      <span class="badge badge-red" id="absence-count"></span>
-    </div>
-    <div class="card-body" id="absence-body"></div>
+  <div class="card" id="detail-card" style="display:none">
+    <div class="card-header">과목별 조회 결과 <span class="badge badge-gray" id="detail-count"></span></div>
+    <div class="card-body"></div>
   </div>
 
-  <script src="plato-api.js"></script>
-  <script src="debug.js"></script>
+  <div class="card" id="health-card" style="display:none">
+    <div class="card-header">자가진단 <span class="badge badge-gray" id="health-status"></span></div>
+    <div class="card-body"></div>
+  </div>
+
+  <div class="card" id="capture-card" style="display:none">
+    <div class="card-header">캡처 (첫 세션 확인용) <span class="badge badge-gray" id="capture-count"></span></div>
+    <div class="card-body"></div>
+  </div>
+
+  <div class="card" id="summary-card" style="display:none">
+    <div class="card-header">출결 요약 <span class="badge badge-gray" id="summary-count"></span></div>
+    <div class="card-body"></div>
+  </div>
+
+  <div class="card" id="markup-card" style="display:none">
+    <div class="card-header">화면 변경 감지 <span class="badge badge-gray" id="markup-count"></span></div>
+    <div class="card-body"></div>
+  </div>
+
+  <div class="card" id="storage-card" style="display:none">
+    <div class="card-header">저장소 진단</div>
+    <div class="card-body"></div>
+  </div>
+
+  <div class="card" id="state-card" style="display:none">
+    <div class="card-header">시간표 캐시 · 출석 기록</div>
+    <div class="card-body"></div>
+  </div>
+
+  <script type="module" src="debug.js"></script>
 </body>
 </html>

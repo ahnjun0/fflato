@@ -1,0 +1,70 @@
+<!--
+  자동출결이 열려 있는 상태의 ubsmartbook/my.php 구조.
+
+  실제 서버 응답을 그대로 두지 않고 우리가 다시 쓴 것이다. 실제 저장본에는
+  MOODLE_WSTOKEN(웹서비스 토큰), sesskey, 이메일이 들어 있어 저장소에 넣을 수
+  없다. 여기 값은 전부 지어낸 것이다.
+
+  구조의 출처: 2026-09-02 실제 출결 세션. 우리가 의존하는 부분만 옮겼다.
+    - #sb-smart-answer-form / #sb-smart-answer-key / #sb-smart-answer-timer
+    - 인라인 var endtime
+    - 인라인 $.post(...) 호출과 그 파라미터
+    - 출결 상태 표와 칩 클래스
+
+  이 파일이 실제와 여전히 같은 모양인지는 tests/real-session.test.mjs 가
+  로컬에 저장본이 있을 때 대조하고, 라이브 서버와의 차이는 debug 페이지의
+  자가진단이 잡는다.
+-->
+<div role="main">
+  <h2>내 출석현황</h2>
+
+  <div class="alert alert-info">
+    <h5>자동출결 인증번호 입력</h5>
+    <p>교수자가 안내한 인증번호를 입력하면 출석 처리됩니다.
+       (남은시간: <b id="sb-smart-answer-timer">4:08</b>)</p>
+    <form id="sb-smart-answer-form" class="d-flex" style="gap:8px;max-width:360px">
+      <input type="text" id="sb-smart-answer-key" class="form-control"
+             inputmode="numeric" placeholder="인증번호를 입력하세요" required="">
+      <button type="submit" class="btn btn-primary">저장</button>
+    </form>
+  </div>
+
+  <div class="csms-box"><div class="csms-box-content"><div class="table-responsive">
+    <table class="table table-lg table-coursemos table-bordered table-local-ubattend table-th-lg">
+      <thead><tr class="tr-border-top">
+        <th>수업일자</th><th>교시</th><th class="text-center">출결 상태</th>
+      </tr></thead>
+      <tbody>
+        <tr><td rowspan="1">2026-09-02</td><td>13:30</td>
+          <td class="text-center"><div class="d-flex justify-content-center">
+            <div class="csms-chips csms-chips-red ">결석</div>
+          </div></td></tr>
+        <tr><td rowspan="1">2026-09-07</td><td>13:30</td>
+          <td class="text-center"><div class="d-flex justify-content-center">-</div></td></tr>
+      </tbody>
+    </table>
+  </div></div></div>
+</div>
+
+<script>
+require(['theme_coursemos/bootstrap', 'jquery'], function(bootstrap, $) {
+  var endtime = 1900000000;
+  var form = document.getElementById('sb-smart-answer-form');
+  if (!form) { return; }
+  function tick() {
+    var left = endtime - Math.floor(Date.now()/1000);
+    var t = document.getElementById('sb-smart-answer-timer');
+    if (t) { var m=Math.floor(Math.max(0,left)/60), s=Math.max(0,left)%60;
+             t.textContent = m+':'+(s<10?'0':'')+s; }
+    if (left <= 0) { location.reload(); }
+  }
+  tick(); setInterval(tick, 1000);
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var authkey = document.getElementById('sb-smart-answer-key').value;
+    $.post(M.cfg.wwwroot + '/local/ubsmartbook/action.php', { id: 9999, action: 'smartanswer', sesskey: M.cfg.sesskey, smartid: 12345, authkey: authkey }).done(function(res){
+      if (res && res.ok) { location.reload(); }
+    });
+  });
+});
+</script>

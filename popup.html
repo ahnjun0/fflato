@@ -19,6 +19,12 @@
       align-items: center;
     }
     .header-title { font-weight: 600; font-size: 14px; }
+    .header-title a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.35);
+    }
+    .header-title a:hover { border-bottom-color: #fff; }
     .header-link {
       color: rgba(255,255,255,0.7);
       text-decoration: none;
@@ -65,6 +71,13 @@
       color: #e74c3c;
       margin-bottom: 6px;
     }
+    .timer-over { color: #856404; font-weight: 600; }
+    .timer-note {
+      font-size: 10px;
+      color: #999;
+      margin: -2px 0 6px;
+    }
+
     .input-row { display: flex; gap: 6px; }
     .auth-input {
       flex: 1;
@@ -103,12 +116,152 @@
     }
     .result.success { background: #d4edda; color: #155724; }
     .result.error { background: #f8d7da; color: #721c24; }
+    .result.warn { background: #fff3cd; color: #856404; line-height: 1.5; }
+    .result.warn a { color: #856404; }
+    .result .muted { opacity: 0.85; font-size: 11px; line-height: 1.5; }
+    .result.error a { color: #721c24; }
+    .attempt { opacity: 0.75; font-size: 11px; }
 
     .no-sessions {
       text-align: center;
+      color: #888;
+      padding: 14px 0 10px;
+      font-size: 13px;
+    }
+    .no-sessions-sub {
+      margin-top: 4px;
+      font-size: 11px;
       color: #aaa;
-      padding: 12px 0;
+    }
+
+    .progress-box { padding: 18px 4px 14px; }
+    .progress-label {
+      text-align: center;
+      font-size: 13px;
+      color: #333;
+    }
+    .progress-detail {
+      text-align: center;
+      font-size: 11px;
+      color: #999;
+      margin-top: 5px;
+    }
+    .progress-track {
+      height: 3px;
+      background: #eee;
+      border-radius: 2px;
+      margin: 10px 20px 0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #1a3a5c;
+      border-radius: 2px;
+      transition: width 0.25s ease;
+    }
+    .login-box {
+      text-align: center;
+      padding: 14px 8px 6px;
+    }
+    .login-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+    }
+    .login-desc {
+      font-size: 11px;
+      color: #999;
+      margin-top: 5px;
+    }
+    .login-btn {
+      display: block;
+      margin: 12px 12px 0;
+      padding: 8px 0;
+      background: #1a3a5c;
+      color: #fff;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .login-btn:hover { background: #244d75; }
+
+    .progress-note {
+      text-align: center;
+      font-size: 10px;
+      color: #bbb;
+      margin-top: 8px;
+    }
+
+    .status-box {
+      border-top: 1px solid #eee;
+      margin-top: 8px;
+      padding-top: 8px;
+    }
+    .status-head {
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 5px;
+    }
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 3px 0;
       font-size: 12px;
+    }
+    .status-name {
+      color: #555;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-decoration: none;
+    }
+    a.status-name:hover {
+      color: #1a3a5c;
+      text-decoration: underline;
+    }
+    .status-chip {
+      flex: none;
+      padding: 1px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .status-foot {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 6px;
+    }
+    .status-head .muted { color: #bbb; font-weight: 400; }
+
+    .status-chip.tone-ok { background: #e7f1fb; color: #1a3a5c; }
+    .status-chip.tone-warn { background: #fff3cd; color: #856404; }
+    .status-chip.tone-bad { background: #f8d7da; color: #721c24; }
+    .status-chip.tone-neutral { background: #eee; color: #666; }
+
+    .summary-counts { flex: none; font-size: 11px; }
+    .summary-counts b { font-weight: 600; margin-left: 6px; }
+    .summary-counts .tone-bad { color: #c0392b; }
+    .summary-counts .tone-warn { color: #856404; }
+    .summary-counts .muted { color: #aaa; margin-left: 6px; }
+
+    .notice {
+      text-align: center;
+      font-size: 11px;
+      color: #888;
+      padding: 6px 0 2px;
+    }
+    .link-btn {
+      background: none;
+      border: none;
+      padding: 0 0 0 4px;
+      color: #1a3a5c;
+      font-size: 11px;
+      font-weight: 600;
+      text-decoration: underline;
+      cursor: pointer;
     }
 
     .refresh-btn {
@@ -127,13 +280,12 @@
 </head>
 <body>
   <div class="header">
-    <span class="header-title">PLATO 빠른 출결</span>
+    <span class="header-title"><a id="plato-home" href="#" target="_blank" rel="noopener">PLATO</a> 빠른 출결</span>
     <a href="debug.html" target="_blank" class="header-link">Debug</a>
   </div>
   <div class="body" id="app">
     <div class="status"><span class="spinner"></span> 출결 세션 검색 중...</div>
   </div>
-  <script src="plato-api.js"></script>
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
 </html>
