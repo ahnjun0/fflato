@@ -11,7 +11,7 @@ const PROFILE = {
   paths: { smartbookAction: '/local/ubsmartbook/action.php' },
   typeParam: 'action',
   actions: { submitAttendance: 'smartanswer' },
-  endedError: 'ended',
+  errorCodes: { ended: 'ended', wrong_key: 'wrong_key', exceeded: 'exceeded' },
 };
 const session = () => ({ profile: PROFILE, sesskey: 'SESS1' });
 // 실제 페이지의 $.post 에서 읽어 온 형태
@@ -23,10 +23,46 @@ const active = () => ({
 
 // --- 응답 해석 ---
 check('ok:true 는 성공', interpretResult({ ok: true, kind: 'success' }).message === '출석 완료!');
-check('인증번호 불일치는 서버 문구 그대로',
-  interpretResult({ ok: false, kind: 'failure', msg: '인증번호가 일치하지 않습니다.' }).message === '인증번호가 일치하지 않습니다.');
+// 서버가 사람 문구를 보내는 경우(모르는 값)에도 우리 문구가 앞에 오고 서버 문구가 뒤따른다.
+check('모르는 사람 문구도 기본 문구 + 서버 응답',
+  interpretResult({ ok: false, kind: 'failure', msg: '인증번호가 틀립니다' }).message
+    === '인증번호가 일치하지 않습니다. (서버 응답: 인증번호가 틀립니다)');
 check('error:ended 는 종료 안내',
   interpretResult({ ok: false, kind: 'ended', msg: 'ended' }).message.includes('종료'));
+// 실측(2026-09-16): 틀린 번호는 error:"wrong_key". 코드를 그대로 내보내지 않는다.
+{
+  const r = interpretResult({ ok: false, kind: 'wrong_key', msg: 'wrong_key' });
+  check('wrong_key 는 깔끔한 문구로', r.message === '인증번호가 일치하지 않습니다.', r.message);
+  check('  코드는 detail 로 남는다', r.detail === 'wrong_key');
+}
+// 모르는 값이 오면 — PLATO 가 새 오류를 더했을 때 — 문구에 서버 응답을 함께 붙인다.
+// "일치하지 않음" 이라고만 하면 사용자가 엉뚱한 번호를 다시 넣는다.
+{
+  const r = interpretResult({ ok: false, kind: 'failure', msg: 'too_many_attempts' });
+  check('모르는 오류는 서버 응답을 함께', r.message.includes('too_many_attempts'), r.message);
+  check('  그래도 기본 문구는 앞에', r.message.startsWith('인증번호가 일치하지 않습니다'), r.message);
+}
+check('서버 문구가 비어 있으면 기본 문구만',
+  interpretResult({ ok: false, kind: 'failure', msg: '' }).message === '인증번호가 일치하지 않습니다.');
+// 2026-09-16 AMD 핸들러: wrong_key 에는 remain(남은 횟수), exceeded 는 횟수 초과.
+{
+  const r = interpretResult({ ok: false, kind: 'wrong_key', msg: 'wrong_key', remain: 3 });
+  check('남은 시도 횟수를 함께 보여준다', r.message.includes('남은 시도 3회'), r.message);
+  check('  remain 을 그대로 실어 준다', r.remain === 3);
+}
+{
+  const r = interpretResult({ ok: false, kind: 'exceeded', msg: 'exceeded' });
+  check('exceeded 는 횟수 초과 안내', r.kind === 'exceeded' && /초과/.test(r.message), r.message);
+}
+// 문구는 페이지 설정 JSON 이 준 것을 우선한다 — 서버가 언어에 맞춰 준 값이다.
+{
+  const en = { wrong_key: 'Wrong key.', ended: 'Session ended.', exceeded: 'Too many attempts.', success: 'Done.' };
+  check('설정 JSON 의 문구를 우선 쓴다',
+    interpretResult({ ok: false, kind: 'wrong_key', msg: 'wrong_key' }, en).message.startsWith('Wrong key.'));
+  check('  성공 문구도', interpretResult({ ok: true }, en).message === 'Done.');
+  check('  모르는 코드도 그 언어의 불일치 문구 + 서버 응답',
+    interpretResult({ ok: false, kind: 'failure', msg: 'weird' }, en).message === 'Wrong key. (서버 응답: weird)');
+}
 check('404 응답은 세션 만료 안내 (업데이트 안내 아님)', (() => {
   const m = interpretResult({ ok: false, kind: 'rejected' }).message;
   return m.includes('세션이 만료') && !m.includes('업데이트');
@@ -92,7 +128,7 @@ check('세션 정보 없으면 거부',
   let calls = 0;
   await submitAttendance(session(), active(), '111111', {
     transport: async () => { calls++; return { ok: false, kind: 'rejected' }; },
-    refresh: async () => {},
+    refresh: async (s) => { s.sesskey = 'NEW'; },
   });
   check('404 가 계속돼도 재시도는 1회뿐', calls === 2, `호출 ${calls}회`);
 }
@@ -109,7 +145,7 @@ check('세션 정보 없으면 거부',
   // 사용자가 인증번호를 반복해서 누르는 헛수고를 하지 않는다.
   const r = await submitAttendance(session(), active(), '111111', {
     transport: async () => ({ ok: false, kind: 'rejected' }),
-    refresh: async () => {},
+    refresh: async (s) => { s.sesskey = 'NEW'; },
   });
   check('갱신 후에도 404 면 규약 변경으로 진단', r.kind === 'contract_changed', r.kind);
   check('규약 변경은 업데이트를 안내', /업데이트/.test(r.message), r.message);
@@ -120,9 +156,21 @@ check('세션 정보 없으면 거부',
   const r = await submitAttendance(session(), active(), '111111', {
     transport: async () => (++calls === 1 ? { ok: false, kind: 'rejected' }
                                           : { ok: false, kind: 'wrong_code', msg: 'x' }),
-    refresh: async () => {},
+    refresh: async (s) => { s.sesskey = 'NEW'; },
   });
   check('갱신 후 다른 응답이면 규약 변경이 아님', r.kind !== 'contract_changed', r.kind);
+}
+{
+  // 틀린 번호가 (관측된 적 없지만) 404 로 온다면? sesskey 를 새로 받아도 값이
+  // 그대로다 — 원인이 sesskey 가 아니니까. 그때 재제출하면 같은 틀린 번호를
+  // 두 번 보내 시도 횟수를 두 번 쓴다. 값이 그대로면 보내지 않는다.
+  let calls = 0;
+  const r = await submitAttendance(session(), active(), '111111', {
+    transport: async () => { calls++; return { ok: false, kind: 'rejected' }; },
+    refresh: async () => { /* sesskey 그대로 */ },
+  });
+  check('sesskey 가 그대로면 재제출하지 않는다', calls === 1, `호출 ${calls}회`);
+  check('  그래도 사용자에게는 이유를 말한다', r.kind === 'contract_changed', r.kind);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

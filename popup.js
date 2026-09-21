@@ -61,7 +61,7 @@ function render() {
         <a href="${esc(courseStatusUrl(profileForHost(), s.courseId))}" target="_blank" rel="noopener">
           PLATO에서 바로 입력하기</a></div>`}
       <div class="input-row">
-        <input type="text" class="auth-input" data-index="${i}" placeholder="인증번호" maxlength="10" inputmode="numeric" ${s.complete ? '' : 'disabled'}>
+        <input type="text" class="auth-input" data-index="${i}" placeholder="인증번호" maxlength="20" inputmode="numeric" ${s.complete ? '' : 'disabled'}>
         <button class="submit-btn" data-index="${i}" ${s.complete ? '' : 'disabled'}>출석</button>
       </div>
       <div class="result-slot" data-index="${i}"></div>
@@ -212,7 +212,10 @@ function recordAge(fetchedAt) {
  * 같은 값을 이미 가진 표에서 세므로 추가 요청이 없다.
  */
 function summaryHTML() {
-  const rows = ((context && context.summary) || []).filter((r) => r.absent > 0 || r.late > 0);
+  // 출석이 아닌 기록이 하나라도 있는 과목. PLATO 의 상태는 한 차시에 하나뿐이라
+  // (출석/결석/지각/조퇴/지각조퇴) 겹치지 않는다 — 지각이면서 조퇴는 "지각조퇴" 다.
+  const flagged = (r) => r.absent > 0 || r.late > 0 || r.early_leave > 0 || r.late_early_leave > 0;
+  const rows = ((context && context.summary) || []).filter(flagged);
   if (rows.length === 0) return '';
   return `
     <div class="status-box">
@@ -223,6 +226,8 @@ function summaryHTML() {
           <span class="summary-counts">
             ${r.absent ? `<b class="tone-bad">결석 ${r.absent}</b>` : ''}
             ${r.late ? `<b class="tone-warn">지각 ${r.late}</b>` : ''}
+            ${r.early_leave ? `<b class="tone-warn">조퇴 ${r.early_leave}</b>` : ''}
+            ${r.late_early_leave ? `<b class="tone-warn">지각조퇴 ${r.late_early_leave}</b>` : ''}
             <span class="muted">/ ${r.recorded}회</span>
             ${r.fresh ? '' : `<span class="muted" title="이번 스캔에서 이 과목은 조회하지 않았습니다. 저장해 둔 기록을 보여줍니다.">· ${esc(recordAge(r.fetchedAt))}</span>`}
           </span>
@@ -314,8 +319,8 @@ async function doSubmit(index) {
   if (result.ok) {
     input.style.display = 'none';
     btn.style.display = 'none';
-  } else if (result.kind === 'ended' || result.kind === 'contract_changed') {
-    // 자동출결이 끝났다. 더 눌러 봐야 소용없다.
+  } else if (['ended', 'exceeded', 'contract_changed'].includes(result.kind)) {
+    // 자동출결이 끝났거나 시도 횟수를 다 썼다. 더 눌러 봐야 소용없다.
     input.disabled = true;
     btn.disabled = true;
     btn.textContent = label;

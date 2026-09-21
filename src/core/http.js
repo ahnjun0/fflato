@@ -135,9 +135,13 @@ export async function actionPost(profile, actionUrl, fields, sesskey) {
   if (json.ok) return { ok: true, kind: 'success', msg: '', raw: json };
 
   const error = String(json.error ?? '');
+  const codes = profile.errorCodes || {};
+  const kind = Object.keys(codes).find((k) => codes[k] === error) || 'failure';
   return {
     ok: false,
-    kind: error === profile.endedError ? 'ended' : 'failure',
+    kind,
+    // 남은 시도 횟수. wrong_key 응답에 실려 온다. 없으면 null.
+    remain: typeof json.remain === 'number' ? json.remain : null,
     msg: error,
     raw: json,
   };

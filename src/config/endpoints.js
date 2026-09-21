@@ -36,10 +36,18 @@ const PROFILE_V2 = {
   },
   typeParam: 'action',
 
-  // 응답은 { ok: true } 또는 { ok: false, error: "..." } 다.
-  // error 는 사람이 읽는 문구라 로직에 쓰지 않는다. 다만 'ended' 만은
-  // 서버가 코드처럼 쓰는 값이라 예외로 인정한다 (페이지 인라인 JS 에서 확인).
-  endedError: 'ended',
+  // 응답은 { ok: true } 또는 { ok: false, error: "<code>", remain?: n } 다.
+  // error 는 서버가 코드처럼 쓰는 값이다. PLATO 의 AMD 핸들러(2026-09-16,
+  // local_ubsmartbook/my)가 아는 코드는 셋이고, 모르는 코드는 wrong 으로 취급한다.
+  // 각 코드의 사용자 문구는 페이지의 설정 JSON(msgWrong 등)에 실려 온다 —
+  // 서버가 언어에 맞춰 준 것이라 우리가 적어 두는 것보다 낫다.
+  errorCodes: {
+    ended: 'ended',        // 자동출결 종료 (인라인 JS 와 AMD 양쪽에서 확인)
+    wrong_key: 'wrong_key', // 인증번호 불일치 (실측 2026-09-16). remain 을 함께 준다
+    exceeded: 'exceeded',  // 시도 횟수 초과 (AMD 핸들러에서 확인)
+  },
+  // 설정 JSON 의 문구 키. 코드 → 키.
+  messageKeys: { success: 'msgSuccess', wrong_key: 'msgWrong', ended: 'msgEnded', exceeded: 'msgExceeded' },
 
   themeName: 'coursemos',
 };

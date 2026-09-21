@@ -24,10 +24,13 @@ const fixture = (n) => fs.readFileSync(path.join(HERE, 'fixtures', n), 'utf8');
 
 const open = fixture('smart-answer-open.html');
 const openAmd = fixture('smart-answer-open-amd.html');
+const openForm = fixture('smart-answer-open-form.html');
 const done = fixture('smart-answer-done.html');
+const formOuter = (html) => { const m = html.match(/<form\b[\s\S]*?<\/form>/i); return m ? m[0] : ''; };
 const pageOf = (html, courseId) => ({
   courseId, html,
-  doc: { querySelector: (css) => (css === sel(P, 'smartAnswerForm') && html.includes('id="sb-smart-answer-form"') ? { tagName: 'FORM' } : null) },
+  doc: { querySelector: (css) => (css === sel(P, 'smartAnswerForm') && html.includes('id="sb-smart-answer-form"')
+    ? { tagName: 'FORM', outerHTML: formOuter(html) } : null) },
 });
 
 // --- 세션 감지 ---
@@ -54,6 +57,35 @@ check('출석 완료 상태에서는 세션 없음', parseSession(P, pageOf(done
   check('  id / smartid', s.fields.id === '9999' && s.fields.smartid === '12345', JSON.stringify(s.fields));
   check('  action 값은 프로파일 상수로 (페이지에 없다)', s.fields.action === 'smartanswer');
   check('  sesskey 는 넣지 않는다 (제출 때 채운다)', !('sesskey' in s.fields));
+  // 설정 JSON 은 사용자 문구도 싣는다. 서버가 언어에 맞춰 준 것이라 그대로 쓴다.
+  check('  서버 문구를 읽는다 (wrong/ended/exceeded/success)',
+    s.messages && s.messages.wrong_key === '인증번호가 일치하지 않습니다.'
+      && s.messages.ended && s.messages.exceeded && s.messages.success,
+    JSON.stringify(s.messages));
+}
+{
+  // 옛 인라인 형태에는 문구가 없다. 없으면 빈 객체 — 우리 문구로 대신한다.
+  const s = parseSession(P, pageOf(open, '9999'));
+  check('옛 형태는 문구 없음 → 빈 객체', s.messages === undefined || Object.keys(s.messages).length === 0);
+}
+// --- 2026-09-16 형태: 폼에 히든 필드 ---
+// 서버가 "이걸 보내라" 고 적어 둔 그대로다. 상수로 채우던 action 까지 페이지에서 읽는다.
+{
+  const s = parseSession(P, pageOf(openForm, '9999'));
+  check('폼 필드 형태를 세션으로 인식', s && s.complete === true, s && s.reason);
+  check('  폼에서 읽었다', s.readerId === 'form', s.readerId);
+  check('  action 값을 페이지에서 읽었다 (상수 아님)', s.fields.action === 'smartanswer' && s.assumed.length === 0,
+    JSON.stringify({ action: s.fields.action, assumed: s.assumed }));
+  check('  id / smartid', s.fields.id === '9999' && s.fields.smartid === '12345', JSON.stringify(s.fields));
+  check('  sesskey / authkey 는 넣지 않는다', !('sesskey' in s.fields) && !('authkey' in s.fields), JSON.stringify(s.fields));
+  check('  엔드포인트는 form action 에서', s.action === 'https://plato.pusan.ac.kr/local/ubsmartbook/action.php', s.action);
+  check('  마감 시각은 설정 JSON 에서', s.endTime === 1900000000, String(s.endTime));
+  check('  문구도 설정 JSON 에서', s.messages && /부정출결/.test(s.messages.exceeded), JSON.stringify(s.messages));
+}
+{
+  // 09-07 형태(name 없는 폼)에서는 폼 리더가 물러나고 설정 JSON 이 읽는다
+  const s = parseSession(P, pageOf(openAmd, '9999'));
+  check('name 없는 폼은 설정 JSON 리더로', s.readerId === 'config', s.readerId);
 }
 {
   // 폼은 있는데 어느 형태로도 못 읽으면 추측하지 않는다

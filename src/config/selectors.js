@@ -40,9 +40,9 @@ export const SELECTORS = {
     // 세션이 열려 있을 때만 서버가 렌더한다.
     //
     // 입력칸(#sb-smart-answer-key)과 타이머(#sb-smart-answer-timer)는 여기 두지
-    // 않는다. 우리는 그것들을 읽지 않는다 — 제출 정보는 인라인 $.post 에서,
-    // 마감 시각은 인라인 endtime 에서 가져온다. 쓰지 않는 것을 자가진단이
-    // 두드리면 PLATO 가 이름만 바꿔도 헛경보가 난다.
+    // 않는다. 우리는 그것들을 읽지 않는다 — 제출 정보는 폼의 히든 필드(09-16~)
+    // 또는 설정 JSON 에서, 마감 시각은 설정 JSON 에서 가져온다. 쓰지 않는 것을
+    // 자가진단이 두드리면 PLATO 가 이름만 바꿔도 헛경보가 난다.
     smartAnswerForm: {
       page: 'smartbookMy',
       css: '#sb-smart-answer-form',

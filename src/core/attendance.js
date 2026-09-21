@@ -82,7 +82,7 @@ export function parseSession(profile, page, { capture = false } = {}) {
   };
 
   for (const read of READERS) {
-    const got = read(profile, html, courseId);
+    const got = read(profile, html, courseId, form);
     if (got) return { ...base, ...got, complete: true };
   }
 
@@ -122,10 +122,17 @@ function readConfig(profile, html) {
   if (cfg.courseid !== undefined) fields.id = String(cfg.courseid);
   fields[profile.typeParam] = profile.actions.submitAttendance;
 
+  // 서버가 언어에 맞춰 준 사용자 문구. 있는 것만 담는다.
+  const messages = {};
+  for (const [code, key] of Object.entries(profile.messageKeys || {})) {
+    if (typeof cfg[key] === 'string' && cfg[key]) messages[code] = cfg[key];
+  }
+
   return {
     action: new URL(cfg.actionurl, profile.base).toString(),
     fields,
     endTime: Number(cfg.endtime) || null,
+    messages,
     // action 값은 페이지에 없어서 상수로 채웠다. 캡처 대조표가 이 사실을
     // 드러내야 한다 — 그러지 않으면 상수를 상수와 비교하며 "일치" 라고 한다.
     assumed: [profile.typeParam],
@@ -147,7 +154,71 @@ function readInlinePost(profile, html) {
   };
 }
 
-const READERS = [readConfig, readInlinePost];
+/**
+ * 폼 자체에서 읽는다. 2026-09-16 부터 PLATO 가 폼에 히든 필드를 넣는다:
+ *
+ *   <form id="sb-smart-answer-form" action="…/action.php" method="post">
+ *     <input type="hidden" name="id" value="6539">
+ *     <input type="hidden" name="action" value="smartanswer">
+ *     <input type="hidden" name="sesskey" value="…">
+ *     <input type="hidden" name="smartid" value="3197">
+ *     <input type="text" name="authkey" …>
+ *
+ * 이게 가장 좋은 출처다. 서버가 "이걸 보내라" 고 적어 둔 그대로라, 지금까지
+ * 상수로 채우던 action 값까지 페이지에서 읽는다 (assumed 가 빈다).
+ * 마감 시각과 문구는 폼에 없어서 설정 JSON 에서 가져온다.
+ *
+ * 09-01 에는 폼에 name 이 하나도 없어 이 방법이 실패했다. 그래서 첫 번째지만
+ * 유일하지는 않다 — name 이 없으면 null 을 돌려주고 다음 리더로 넘어간다.
+ */
+function readForm(profile, html, courseId, form) {
+  const outer = form && typeof form.outerHTML === 'string' ? form.outerHTML : '';
+  if (!/<form\b/i.test(outer)) return null;
+
+  const fields = {};
+  for (const tag of outer.matchAll(/<input\b[^>]*>/gi)) {
+    const attrs = attrsOf(tag[0]);
+    if (!attrs.name || RUNTIME_FIELDS.has(attrs.name)) continue;
+    if (attrs.type && attrs.type !== 'hidden') continue;
+    if (attrs.value === undefined) continue;
+    fields[attrs.name] = attrs.value;
+  }
+  if (fields.smartid === undefined) return null; // name 없는 옛 폼 — 다른 리더로
+
+  const formTag = outer.match(/<form\b[^>]*>/i);
+  const actionAttr = formTag ? attrsOf(formTag[0]).action : undefined;
+  const cfg = readConfig(profile, html);
+
+  const assumed = [];
+  if (!fields[profile.typeParam]) {
+    fields[profile.typeParam] = profile.actions.submitAttendance;
+    assumed.push(profile.typeParam);
+  }
+  if (!fields.id && courseId) fields.id = String(courseId);
+
+  return {
+    action: actionAttr
+      ? new URL(actionAttr, profile.base).toString()
+      : (cfg ? cfg.action : url(profile, 'smartbookAction')),
+    fields,
+    endTime: cfg ? cfg.endTime : null,
+    messages: cfg ? cfg.messages : {},
+    assumed,
+    readerId: 'form',
+  };
+}
+
+/** 태그 문자열의 속성을 객체로. 값은 HTML 엔티티 몇 개만 푼다. */
+function attrsOf(tag) {
+  const out = {};
+  for (const m of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g)) {
+    const v = m[2] ?? m[3] ?? m[4] ?? '';
+    out[m[1].toLowerCase()] = v.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  }
+  return out;
+}
+
+const READERS = [readForm, readConfig, readInlinePost];
 
 /**
  * `{ id: 6552, action: 'smartanswer', sesskey: M.cfg.sesskey, smartid: 377 }`
